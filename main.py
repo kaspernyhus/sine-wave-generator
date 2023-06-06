@@ -31,7 +31,6 @@ def main():
     dur_ms = args['duration']
 
     num_samples = int(fs*dur_ms/1000)
-
     samples = np.zeros((num_samples, channels), dtype=np.int16)
 
     if args["mode"] == 'file':
