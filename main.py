@@ -29,7 +29,7 @@ def main():
     print("Channels:    ", channels)
     print("Frequencies: ", f)
     print("Volume:      ", volume)
-    print("Duration:    ", dur_ms)
+    print(f"Duration:     {dur_ms}ms")
 
     num_samples = int(fs*dur_ms/1000)
 
