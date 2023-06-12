@@ -13,7 +13,7 @@ def main():
     help="Sample Rate")
     ap.add_argument("-c", "--channels", default=2, type=int, required=False,
     help="Number of channels")
-    ap.add_argument("-f", "--frequencies", default=[440, 552], type=list, required=False,
+    ap.add_argument("-f", "--frequencies", nargs='+', default=['440', '552'], required=False,
     help="Sine frequencies")
     ap.add_argument("-v", "--volume", default=0.8, type=float, required=False,
     help="Volume")
@@ -24,7 +24,7 @@ def main():
     args = vars(ap.parse_args())
 
     fs = args['sample_rate']
-    f = list(args['frequencies'])
+    f = [int(freq) for freq in args['frequencies']]
     volume = args['volume']
     channels = args['channels']
     scale = 32767
