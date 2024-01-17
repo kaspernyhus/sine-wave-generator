@@ -1,7 +1,5 @@
-import sys
 import argparse
 import math
-import struct
 import numpy as np
 from time import sleep
 from scipy.io import wavfile
