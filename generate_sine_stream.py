@@ -38,13 +38,20 @@ def main():
         required=False,
         help="Volume"
     )
+    ap.add_argument(
+        "-g",
+        "--glitch",
+        action="store_true",
+        help="Produce a glitch roughly every second"
+    )
     args = vars(ap.parse_args())
 
     fs = args["sample_rate"]
     freq = args["frequency"]
     volume = args["volume"]
+    glitch_on = args["glitch"]
 
-    generator = SineWaveGenerator(sample_rate=fs, frequency=freq, chunk_size=1024)
+    generator = SineWaveGenerator(sample_rate=fs, frequency=freq, chunk_size=1024, glitch=glitch_on)
     generator.start()
 
     while not generator.exit_event.is_set():
