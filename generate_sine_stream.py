@@ -51,7 +51,7 @@ def main():
     volume = args["volume"]
     glitch_on = args["glitch"]
 
-    generator = SineWaveGenerator(sample_rate=fs, frequency=freq, chunk_size=1024, glitch=glitch_on)
+    generator = SineWaveGenerator(sample_rate=fs, frequency=freq, amplitude=volume, chunk_size=1024, glitch=glitch_on)
     generator.start()
 
     while not generator.exit_event.is_set():

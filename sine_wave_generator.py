@@ -23,12 +23,25 @@ class SineWaveGenerator:
         t = (np.arange(self.chunk_size) + self.chunk_index * self.chunk_size) / self.sample_rate
         sine_wave_chunk = self.amplitude * np.sin(2 * np.pi * self.frequency * t).astype(np.float32)
         self.chunk_index += 1
+
+        # Produce glitch
         if self.glitch_active:
             if self.glitch_timer <= 0:
                 self.glitch_timer = self.sample_rate / self.chunk_size
-                sine_wave_chunk = np.zeros_like(sine_wave_chunk)
+                # sine_wave_chunk = np.zeros_like(sine_wave_chunk)
+                if sine_wave_chunk[0] < 0.8:
+                    sine_wave_chunk[0] = 1.0
+                    sine_wave_chunk[1] = 1.0
+                    sine_wave_chunk[2] = 1.0
+                    sine_wave_chunk[3] = 1.0
+                else:
+                    sine_wave_chunk[0] = 0.0
+                    sine_wave_chunk[1] = 0.0
+                    sine_wave_chunk[2] = 0.0
+                    sine_wave_chunk[3] = 0.0
             else:
                 self.glitch_timer -= 1
+
         return sine_wave_chunk
 
     def _play_audio(self):
