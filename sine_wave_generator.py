@@ -6,7 +6,7 @@ import sys
 import time
 
 class SineWaveGenerator:
-    def __init__(self, sample_rate=48000, frequency=440, amplitude=0.5, chunk_size=1024, glitch=False):
+    def __init__(self, sample_rate=48000, frequency=440, amplitude=0.5, chunk_size=1024, glitch=False, glitch_size=10):
         self.sample_rate = sample_rate
         self.frequency = frequency
         self.amplitude = amplitude
@@ -16,6 +16,7 @@ class SineWaveGenerator:
         self.audio_thread = threading.Thread(target=self._play_audio)
         self.audio_thread.daemon = True
         self.glitch_active = glitch
+        self.glitch_size = glitch_size
         self.glitch_timer = 0
 
     def _generate_chunk(self):
@@ -29,16 +30,7 @@ class SineWaveGenerator:
             if self.glitch_timer <= 0:
                 self.glitch_timer = self.sample_rate / self.chunk_size
                 # sine_wave_chunk = np.zeros_like(sine_wave_chunk)
-                if sine_wave_chunk[0] < 0.8:
-                    sine_wave_chunk[0] = 1.0
-                    sine_wave_chunk[1] = 1.0
-                    sine_wave_chunk[2] = 1.0
-                    sine_wave_chunk[3] = 1.0
-                else:
-                    sine_wave_chunk[0] = 0.0
-                    sine_wave_chunk[1] = 0.0
-                    sine_wave_chunk[2] = 0.0
-                    sine_wave_chunk[3] = 0.0
+                sine_wave_chunk[:self.glitch_size] = 0.0
             else:
                 self.glitch_timer -= 1
 
