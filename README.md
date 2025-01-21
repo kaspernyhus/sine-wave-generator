@@ -1,43 +1,24 @@
 # SineWaveGenerator
+Generate a .wav file containing one or more channels of sine waves or a stream.
 
-Generate a .wav file containing one or more channels of sine waves.
-
-### Create Virtual Environment
+## Setup
+Using poetry
 ```
-python -m venv venv/
-```
-
-### Install dependencies
-```
-pip install -r requirements.txt
+poetry install
 ```
 
 ### Arguments
-
 ```
-python generate_sine.py --help
-```
-```
-usage: generate_sine.py [-h] [-r SAMPLE_RATE] [-c CHANNELS] [-f FREQUENCIES [FREQUENCIES ...]] [-v VOLUME] [-d DURATION] [-m MODE]
-
-Sine generator
-
-options:
-  -h, --help            show this help message and exit
-  -r SAMPLE_RATE, --sample_rate SAMPLE_RATE
-                        Sample Rate
-  -c CHANNELS, --channels CHANNELS
-                        Number of channels
-  -f FREQUENCIES [FREQUENCIES ...], --frequencies FREQUENCIES [FREQUENCIES ...]
-                        Sine frequencies
-  -v VOLUME, --volume VOLUME
-                        Volume
-  -d DURATION, --duration DURATION
-                        Duration [ms]
-  -m MODE, --mode MODE  Mode: 'wav' = wav file, 'bin' = binary file or 'stream'
+poetry run sine --help
 ```
 
-#### Example
+### Example
+Generate a 10 second wave file with 2 channels, 442Hz in left 1000Hz in right, volume=0.5
 ```
-python generate_sine.py -c 2 -f 442 1000 -v 0.5 -d 1000 -m wav
+poetry run sine -w -c 2 -f 442 1000 -v 0.5 -d 10
+```
+
+A stream with glitches
+```
+poetry run sine -g
 ```
