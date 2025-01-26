@@ -1,7 +1,7 @@
 import sys
 import signal
 import argparse
-from sinewavegenerator.sine_wave_generator import SineWaveGenerator
+from sinewavegenerator.sine_wave_generator import SineWaveGenerator, GlitchType
 
 
 def main():
@@ -46,12 +46,27 @@ def main():
         help="Audio bitdepth (16/24/32bit)",
     )
     ap.add_argument("-v", "--volume", default=0.8, type=float, required=False, help="Volume")
-    ap.add_argument("-g", "--glitch", action="store_true", help="Inserts a glitch roughly every second")
-    ap.add_argument("--glitch_size", default=10, type=int, help="Number of samples per channel to glitch")
+    ap.add_argument("-g", "--glitch", action="store_true", help="Enable glitches roughly every second")
     ap.add_argument(
-        "--dropouts",
-        action="store_true",
-        help="Insert silence (dropouts). 'glitch_size' sets number of samples to silence",
+        "--dropout",
+        nargs="?",
+        type=int,
+        required=False,
+        help="Insert silence (dropouts). Number of samples to silence (default: 100)",
+    )
+    ap.add_argument(
+        "--skip",
+        nargs="?",
+        type=int,
+        required=False,
+        help="Skip samples (default: 10)",
+    )
+    ap.add_argument(
+        "--fullscale",
+        nargs="?",
+        type=int,
+        required=False,
+        help="Insert full scale samples to produce a click (default: 5)",
     )
     ap.add_argument("-w", "--wav", action="store_true", help="Save to wav file")
     ap.add_argument("-d", "--duration", default=10, type=int, required=False, help="Duration [ms]")
@@ -62,9 +77,27 @@ def main():
     volume = args["volume"]
     channels = args["channels"]
     bitdepth = args["bitdepth"]
-    glitch_on = args["glitch"] or args["dropouts"]
+    glitch_on = args["glitch"]
     duration = args["duration"]
     file = args["wav"]
+
+    glitch_type = GlitchType.NONE
+    glitch_size = 0
+
+    if glitch_on:
+        print("NOTE: Glitches enabled")
+        if "--dropout" in sys.argv:
+            print("... producing dropouts\n")
+            glitch_type = GlitchType.DROPOUT
+            glitch_size = 100 if not args["dropout"] else args["dropout"]
+        elif "--skip" in sys.argv:
+            print("... skipping samples\n")
+            glitch_type = GlitchType.SKIP
+            glitch_size = 10 if not args["skip"] else args["skip"]
+        elif "--fullscale" in sys.argv:
+            print("... inserting full scale samples\n")
+            glitch_type = GlitchType.FULLSCALE
+            glitch_size = 5 if not args["fullscale"] else args["fullscale"]
 
     generator = SineWaveGenerator(
         sample_rate=fs,
@@ -73,9 +106,8 @@ def main():
         bitdepth=bitdepth,
         amplitude=volume,
         chunk_size=1024,
-        glitch=glitch_on,
-        glitch_size=args["glitch_size"],
-        glitch_zeros=args["dropouts"],
+        glitch_type=glitch_type,
+        glitch_size=glitch_size,
     )
 
     if not file:

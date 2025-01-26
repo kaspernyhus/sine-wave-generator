@@ -1,9 +1,17 @@
 import threading
+from enum import Enum
 
 import numpy as np
 import pyaudio
 from scipy.io import wavfile
 import scipy.io.wavfile as wavfile
+
+
+class GlitchType(Enum):
+    NONE = 0
+    DROPOUT = 1
+    SKIP = 2
+    FULLSCALE = 3
 
 
 class SineWaveGenerator:
@@ -15,9 +23,8 @@ class SineWaveGenerator:
         amplitude=0.5,
         bitdepth=32,
         chunk_size=1024,
-        glitch=False,
-        glitch_size=4,
-        glitch_zeros=False,
+        glitch_type=GlitchType.NONE,
+        glitch_size=10,
         blocking=True,
     ):
         self.sample_rate = sample_rate
@@ -28,15 +35,16 @@ class SineWaveGenerator:
             self.channels = len(self.frequencies)
         self.bitdepth = bitdepth
         self.chunk_size = chunk_size
-        self.chunk_index = 0
+        self.thetas = np.zeros(len(self.frequencies))
+
         self.stream = None
         self.exit_event = threading.Event()
         self.blocking = blocking
         self.audio_thread = threading.Thread(target=self._play_audio)
         self.audio_thread.daemon = True
-        self.glitch_active = glitch
+
+        self.glitch = glitch_type
         self.glitch_size = glitch_size
-        self.glitch_zeros = glitch_zeros
         self.glitch_timer = 0
 
     def _get_bitdepth(self):
@@ -49,32 +57,33 @@ class SineWaveGenerator:
         else:
             return pyaudio.paFloat32
 
+    def _generate_sines(self, num_samples):
+        """Generate sine wave samples for all frequencies while maintaining phase continuity."""
+        delta_theta = (2 * np.pi * np.array(self.frequencies)) / self.sample_rate  # Δθ = 2πf / fs
+        theta_matrix = self.thetas[:, None] + np.arange(num_samples) * delta_theta[:, None]
+        sine_waves = (self.amplitude * np.sin(theta_matrix)).astype(np.float32)
+        self.thetas = (self.thetas + num_samples * delta_theta) % (2 * np.pi)
+        return np.column_stack(sine_waves).flatten()
+
     def _generate_chunk(self):
-        """Generate a chunk of sine wave samples for multiple channels with different frequencies, interleaved.
-        Introduces a glitch effect at a periodic interval.
-        """
-        if len(self.frequencies) != self.channels:
-            self.frequencies = self.frequencies * self.channels
+        """Generate a chunk of sine wave samples, introducing glitches when necessary."""
+        interleaved_chunk = self._generate_sines(self.chunk_size)
 
-        t = (np.arange(self.chunk_size) + self.chunk_index * self.chunk_size) / self.sample_rate
-        sine_waves = [(self.amplitude * np.sin(2 * np.pi * freq * t)).astype(np.float32) for freq in self.frequencies]
-        interleaved_chunk = np.column_stack(sine_waves).flatten()
+        if self.glitch_timer > self.sample_rate / self.chunk_size:
+            self.glitch_timer = 0
+            if self.glitch == GlitchType.DROPOUT:
+                interleaved_chunk[: self.channels * self.glitch_size] = 0.0
 
-        if self.glitch_active:
-            if self.glitch_timer <= 0:
-                self.glitch_timer = self.sample_rate / self.chunk_size
-                if self.glitch_zeros:
-                    interleaved_chunk = np.zeros(self.channels * self.glitch_size, dtype=np.float32)
-                else:
-                    for i in range(self.channels * self.glitch_size):
-                        if interleaved_chunk[i] < 0.0:
-                            interleaved_chunk[i] = 1.0
-                        else:
-                            interleaved_chunk[i] = -1.0
-            else:
-                self.glitch_timer -= 1
+            elif self.glitch == GlitchType.SKIP:
+                interleaved_chunk = interleaved_chunk[self.channels * self.glitch_size :]
+                new_samples = self._generate_sines(self.glitch_size)
+                interleaved_chunk = np.concatenate((interleaved_chunk, new_samples))
 
-        self.chunk_index += 1
+            elif self.glitch == GlitchType.FULLSCALE:
+                fs_sample = -1.0 if interleaved_chunk[0] >= 0.0 else 1.0
+                interleaved_chunk[: self.channels * self.glitch_size] = fs_sample
+        else:
+            self.glitch_timer += 1
         return interleaved_chunk
 
     def _play_audio(self):

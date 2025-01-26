@@ -20,5 +20,5 @@ poetry run sine -w -c 2 -f 442 1000 -v 0.5 -d 10
 
 A stream with glitches
 ```
-poetry run sine -g
+poetry run sine -g --dropout
 ```
