@@ -1,3 +1,4 @@
+import random
 import threading
 from enum import Enum
 
@@ -39,6 +40,8 @@ class SineWaveGenerator:
         glitch_type=GlitchType.NONE,
         glitch_size=10,
         blocking=True,
+        random_glitch_interval=False,
+        glitch_interval_range=(0.5, 2.0),
     ):
         if sample_rate <= 0:
             raise ValueError(f"Sample rate must be positive, got {sample_rate}")
@@ -68,6 +71,12 @@ class SineWaveGenerator:
         if chunk_size <= 0 or chunk_size > self.MAX_CHUNK_SIZE:
             raise ValueError(f"Chunk size must be positive and <= {self.MAX_CHUNK_SIZE}, got {chunk_size}")
 
+        # Validate glitch interval range
+        if glitch_interval_range[0] <= 0 or glitch_interval_range[1] <= 0:
+            raise ValueError("Glitch interval range values must be positive")
+        if glitch_interval_range[0] > glitch_interval_range[1]:
+            raise ValueError("Glitch interval range minimum must be <= maximum")
+
         self.sample_rate = sample_rate
         self.frequencies = frequencies
         self.amplitude = amplitude
@@ -87,8 +96,14 @@ class SineWaveGenerator:
         self.glitch_type = glitch_type
         self.glitch_size = glitch_size
         self.glitch_timer = 0
-        # Calculate how many chunks per glitch interval
-        self.glitch_interval_chunks = int(self.GLITCH_INTERVAL_SECONDS * sample_rate / chunk_size)
+
+        # Glitch interval randomization settings
+        self.random_glitch_interval = random_glitch_interval
+        self.glitch_interval_range = glitch_interval_range
+
+        # Calculate base glitch interval and set next glitch time
+        self.base_glitch_interval_chunks = int(self.GLITCH_INTERVAL_SECONDS * sample_rate / chunk_size)
+        self._set_next_glitch_interval()
 
     def __enter__(self):
         return self
@@ -101,6 +116,16 @@ class SineWaveGenerator:
             self.stop()
         except AttributeError:
             pass
+
+    def _set_next_glitch_interval(self):
+        """Set the number of chunks until the next glitch occurs."""
+        if self.random_glitch_interval:
+            # Random interval between min and max range
+            random_seconds = random.uniform(self.glitch_interval_range[0], self.glitch_interval_range[1])
+            self.next_glitch_chunks = int(random_seconds * self.sample_rate / self.chunk_size)
+        else:
+            # Use fixed interval
+            self.next_glitch_chunks = self.base_glitch_interval_chunks
 
     def _get_pyaudio_format(self):
         """Convert bit depth to PyAudio format constant."""
@@ -119,16 +144,15 @@ class SineWaveGenerator:
         """Generate a chunk of sine wave samples with optional glitch effects."""
         interleaved_chunk = self._generate_sines(self.chunk_size)
 
-        if self.glitch_timer > self.glitch_interval_chunks:
+        if self.glitch_timer >= self.next_glitch_chunks:
             self.glitch_timer = 0
+            self._set_next_glitch_interval()
             if self.glitch_type == GlitchType.DROPOUT:
                 interleaved_chunk[: self.channels * self.glitch_size] = 0.0
 
             elif self.glitch_type == GlitchType.SKIP:
-                # More efficient: shift data instead of concatenation
                 samples_to_skip = self.channels * self.glitch_size
                 interleaved_chunk[:-samples_to_skip] = interleaved_chunk[samples_to_skip:]
-                # Fill the end with new samples
                 new_samples = self._generate_sines(self.glitch_size)
                 interleaved_chunk[-len(new_samples) :] = new_samples
 

@@ -17,11 +17,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                              # Play 440Hz sine wave
+  %(prog)s                             # Play 440Hz sine wave
   %(prog)s -f 1000 -v 0.5              # Play 1kHz at 50%% volume
   %(prog)s -f 440 880 -c 2             # Play stereo (440Hz left, 880Hz right)
   %(prog)s -w -d 5                     # Save 5 second WAV file
-  %(prog)s -g --dropout 50             # Play with dropout glitches (50 samples)
+  %(prog)s --dropout 50                # Play with dropout glitches (50 samples)
+  %(prog)s --skip --random-interval    # Play with randomized skip glitches
         """,
     )
 
@@ -85,7 +86,6 @@ Examples:
         help="Duration in seconds for WAV output (default: %(default)s sec)",
     )
 
-    # Glitch Effects
     glitch_group = ap.add_argument_group("Glitch Effects (experimental audio artifacts)")
     glitch_group.add_argument(
         "-g",
@@ -117,6 +117,19 @@ Examples:
         metavar="SAMPLES",
         help="Insert full-scale clicks every ~1 second (default: %(const)s samples)",
     )
+    glitch_group.add_argument(
+        "--random-interval",
+        action="store_true",
+        help="Randomize glitch intervals for more realistic artifacts",
+    )
+    glitch_group.add_argument(
+        "--interval-range",
+        nargs=2,
+        type=float,
+        default=[0.5, 2.0],
+        metavar=("MIN", "MAX"),
+        help="Range for random glitch intervals in seconds (default: %(default)s)",
+    )
     args = vars(ap.parse_args())
 
     fs = args["sample_rate"]
@@ -127,6 +140,8 @@ Examples:
     glitch_on = args["glitch"]
     duration = args["duration"]
     file = args["wav"]
+    random_interval = args["random_interval"]
+    interval_range = tuple(args["interval_range"])
 
     glitch_type = GlitchType.NONE
     glitch_size = 0
@@ -157,6 +172,8 @@ Examples:
             chunk_size=1024,
             glitch_type=glitch_type,
             glitch_size=glitch_size,
+            random_glitch_interval=random_interval,
+            glitch_interval_range=interval_range,
         )
     except ValueError as e:
         print(f"\033[91mError: {e}\033[0m")
@@ -173,15 +190,22 @@ Examples:
     if glitch_on:
         print("\033[91mNOTE: Glitches enabled\033[0m")
         if glitch_type == GlitchType.DROPOUT:
-            print("\033[93mGlitch type: DROPOUT, size:", glitch_size, "samples\033[0m\n")
+            print(f"\033[93mGlitch type: DROPOUT, size: {glitch_size} samples\033[0m")
         elif glitch_type == GlitchType.SKIP:
-            print("\033[93mGlitch type: SKIP, size:", glitch_size, "samples\033[0m\n")
+            print(f"\033[93mGlitch type: SKIP, size: {glitch_size} samples\033[0m")
         elif glitch_type == GlitchType.FULLSCALE:
-            print("\033[93mGlitch type: FULLSCALE, size:", glitch_size, "samples\033[0m\n")
+            print(f"\033[93mGlitch type: FULLSCALE, size: {glitch_size} samples\033[0m")
+
+        if random_interval:
+            print(f"\033[94mRandom intervals: {interval_range[0]:.1f}s - {interval_range[1]:.1f}s\033[0m")
+        else:
+            print("\033[94mFixed interval: 1.0s\033[0m")
+        print()
 
     try:
         if file:
-            filename = f"sine_wave_{int(freq[0])}.wav"
+            glitch = "_glitchy" if glitch_on else ""
+            filename = f"sine_wave_{int(freq[0])}{glitch}.wav"
             generator.save_to_wav(duration, filename)
             print(f"Saved to {filename}")
         else:
