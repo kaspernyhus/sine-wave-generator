@@ -1,7 +1,7 @@
 import sys
 import signal
 import argparse
-from sinewavegenerator.sine_wave_generator import SineWaveGenerator, GlitchType
+from sine_wave_generator import SineWaveGenerator, GlitchType
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    ap = argparse.ArgumentParser(description="Sine generator")
+    ap = argparse.ArgumentParser(description="Sine wave generator")
     ap.add_argument(
         "-r",
         "--sample_rate",
@@ -111,10 +111,12 @@ def main():
     )
 
     if not file:
+        print("Playing sine wave(s) at frequencies:", freq, "Hz")
+        print("press Ctrl+C to stop")
         generator.start(blocking=True)
     else:
         print("Saving to sine_wave.wav", "Duration:", duration, "s")
-        generator.save_to_wav(duration, "sine_wave.wav")
+        generator.save_to_wav(duration, f"sine_wave_{int(freq)}.wav")
 
 
 if __name__ == "__main__":

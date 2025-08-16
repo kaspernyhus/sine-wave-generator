@@ -4,7 +4,6 @@ from enum import Enum
 import numpy as np
 import pyaudio
 from scipy.io import wavfile
-import scipy.io.wavfile as wavfile
 
 
 class GlitchType(Enum):
@@ -109,10 +108,8 @@ class SineWaveGenerator:
             self.stream.stop_stream()
             self.stream.close()
             p.terminate()
-            print("Audio stream closed and resources cleaned up.")
 
     def start(self, blocking=None):
-        print("Starting audio thread...")
         if blocking is not None:
             self.blocking = blocking
         self.audio_thread.start()
@@ -120,7 +117,6 @@ class SineWaveGenerator:
             self.audio_thread.join()
 
     def stop(self):
-        print("Stopping audio thread...")
         self.exit_event.set()
         self.audio_thread.join()
 

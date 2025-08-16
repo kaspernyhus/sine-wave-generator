@@ -1,20 +1,22 @@
-[tool.poetry]
-name = "sinewavegenerator"
+[project]
+name = "sine-wave-generator"
 version = "0.1.0"
 description = "Generate sine waves as .wav files or audio stream"
-authors = ["Kasper Nyhus <kanyhus@gmail.com>"]
-license = "MIT"
+authors = [
+    {name = "Kasper Nyhus", email = "kanyhus@gmail.com"}
+]
+license = {text = "MIT"}
 readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyaudio>=0.2.14",
+    "numpy>=2.2.2",
+    "scipy>=1.15.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-pyaudio = "^0.2.14"
-numpy = "^2.2.2"
-scipy = "^1.15.1"
-
-[tool.poetry.scripts]
-sine = "sinewavegenerator.main:main"
+[project.scripts]
+sine-wave-generator = "sine_wave_generator.main:main"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
